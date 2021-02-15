@@ -37,6 +37,7 @@ App = {
     $.getJSON('RealEstate.json', function (data) {
       App.contracts.RealEstate = TruffleContract(data);
       App.contracts.RealEstate.setProvider(App.web3Provider);
+      return App.loadRealEstates();
     })
   },
 
@@ -56,6 +57,7 @@ App = {
         $('#name').val('');
         $('#age').val('');
         $('#buyModal').modal('hide');
+        return App.loadRealEstates();
       }).catch(function (err) {
         console.log(err.message);
       })
@@ -65,7 +67,32 @@ App = {
   },
 
   loadRealEstates: function () {
+    App.contracts.RealEstate.deployed().then(function(instance) {
+      return instance.getAllBuyers.call();
+    }).then(function(buyers) {
+      for(i = 0; i < buyers.length; i++) {
+        if (buyers[i] !== '0x0000000000000000000000000000000000000000') {
+          var imgType = $('.panel-realEstate').eq(i).find('img').attr('src').substr(7);
 
+          switch(imgType) {
+            case 'apartment.jpg':
+              $('.panel-realEstate').eq(i).find('img').attr('src', 'images/apartment_sold.jpg')
+              break;
+            case 'townhouse.jpg':
+              $('.panel-realEstate').eq(i).find('img').attr('src', 'images/townhouse_sold.jpg')
+              break;
+            case 'house.jpg':
+              $('.panel-realEstate').eq(i).find('img').attr('src', 'images/house_sold.jpg')
+              break;
+          }
+
+          $('.panel-realEstate').eq(i).find('.btn-buy').text('매각').attr('disabled', true);
+          $('.panel-realEstate').eq(i).find('.btn-buyerInfo').removeAttr('style');
+        }
+      }
+    }).catch(function(err) {
+      console.log(err.message);
+    })
   },
 
   listenToEvents: function () {
@@ -85,4 +112,32 @@ $(function () {
     $(e.currentTarget).find('#id').val(id);
     $(e.currentTarget).find('#price').val(price);
   });
+
+  $('#buyerInfoModal').on('show.bs.modal', function (e) {
+    var id = $(e.relatedTarget).parent().find('.id').text();
+    var check_eng = /[a-zA-Z]/; // 문자 
+    var check_kor = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/; // 한글체크
+    var check_spc = /[~!@#$%^&*()_+|<>?:{}]/; // 특수문자
+    var check_num = /[0-9]/; // 숫자
+
+    App.contracts.RealEstate.deployed().then(function(instance) {
+      return instance.getBuyerInfo.call(id);
+    }).then(function (buyerInfo){
+      $(e.currentTarget).find('#buyerAddress').text(buyerInfo[0]);
+      console.log("check_kor")
+      console.log(check_kor.test(web3.toUtf8(buyerInfo[1])))
+      console.log(buyerInfo[1]);
+      if(check_kor.test(web3.toUtf8(buyerInfo[1]))){
+        $(e.currentTarget).find('#buyerName').text(web3.toUtf8(buyerInfo[1]));
+      } else if(check_num.test(buyerInfo[1])) {
+        $(e.currentTarget).find('#buyerName').text(web3.toDecimal(buyerInfo[1]));
+      } else {
+        $(e.currentTarget).find('#buyerName').text((buyerInfo[1]));
+      }
+      $(e.currentTarget).find('#buyerAge').text(buyerInfo[2]);
+    }).catch(function (err){
+      console.log(err);
+    })
+  });
+
 });
