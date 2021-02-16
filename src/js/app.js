@@ -37,7 +37,7 @@ App = {
     $.getJSON('RealEstate.json', function (data) {
       App.contracts.RealEstate = TruffleContract(data);
       App.contracts.RealEstate.setProvider(App.web3Provider);
-      return App.loadRealEstates();
+      App.listenToEvents();
     })
   },
 
@@ -57,7 +57,7 @@ App = {
         $('#name').val('');
         $('#age').val('');
         $('#buyModal').modal('hide');
-        return App.loadRealEstates();
+        // return App.loadRealEstates();
       }).catch(function (err) {
         console.log(err.message);
       })
@@ -96,7 +96,17 @@ App = {
   },
 
   listenToEvents: function () {
-
+    App.contracts.RealEstate.deployed().then(function(instance) {
+      instance.LogBuyRealEstate({}, { fromBlock: 0, toBlock: 'latest'}).watch(function(error, event) {
+        if (!error) {
+          console.log(event);
+          $('#events').append('<p>' + event.args._buyer + ' 계정에서 ' + event.args._id + ' 번 매물을 매입했습니다.' + '</p>');
+        } else {
+          console.error(error);
+        }
+        App.loadRealEstates();
+      })
+    })
   }
 };
 
