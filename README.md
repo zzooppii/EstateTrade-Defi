@@ -1,7 +1,7 @@
 # EstateTrade-Defi
 부동산 Dapp
 
-#실행법
+# 실행법
 1. ganache 실행
 2. 자신의 환경에서 smartContract 재배포
 3. ganache, metamask 연동
